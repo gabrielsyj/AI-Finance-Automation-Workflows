@@ -1,0 +1,534 @@
+{
+  "name": "Finance AI Parser V1",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "sender": "ibanking.alert@dbs.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "95c5b6fb-cf44-4b28-96a8-719fcc18b3de",
+      "name": "Gmail Trigger"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5.4-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an expert financial transaction parser for DBS/POSB Singapore banking notification emails.\n\nYour task is to extract transaction details accurately from the email.\n\nThe email may describe:\n\n* PayNow Sent\n* PayNow Received\n* Debit Card purchases\n* Credit Card purchases\n* FAST transfers\n* GIRO payments\n* Salary credits\n* Interest credits\n* Cashback credits\n* Refunds\n* ATM withdrawals\n* QR payments\n* Other banking transactions\n\nRead the ENTIRE email carefully before extracting information.\n\nReturn ONLY a valid raw JSON object.\n\nDo NOT use markdown.\n\nDo NOT wrap the JSON inside ```json.\n\nDo NOT explain your reasoning.\n\nDo NOT invent information.\n\nIf information cannot be determined, return null.\n\nReturn this exact JSON schema:\n\n{\n\"transaction_type\": \"\",\n\"payment_method\": \"\",\n\"merchant\": null,\n\"amount\": 0,\n\"currency\": \"\",\n\"category\": \"\",\n\"description\": \"\",\n\"confidence\": 0,\n\"income_type\": null\n}\n\nRules:\n\ntransaction_type MUST be ONLY ONE OF:\n\n* expense\n* income\n* unknown\n\nNever return:\n\n* transfer\n* salary\n* cashback\n* refund\n* interest\n\nThose belong inside \"income_type\", NOT \"transaction_type\".\n\nOutgoing money is ALWAYS:\n\nexpense\n\nExamples:\n\n* PayNow Sent\n* Debit Card Purchase\n* Credit Card Purchase\n* FAST Payment\n* GIRO Payment\n* ATM Withdrawal\n* QR Payment\n\nIncoming money is ALWAYS:\n\nincome\n\nExamples:\n\n* PayNow Received\n* FAST Received\n* Salary Credit\n* Cashback Credit\n* Interest Credit\n* Refund Received\n\nIf transaction_type is income, income_type MUST be one of:\n\n* salary\n* cashback\n* interest\n* refund\n* transfer\n* other\n\nOtherwise:\n\nincome_type = null\n\nPayment methods may include:\n\n* PayNow\n* Debit Card\n* Credit Card\n* FAST\n* GIRO\n* ATM\n* QR\n\nMerchant:\n\nExtract the merchant, company or sender ONLY if explicitly stated.\n\nExamples:\n\n* FOMO PAY PTE. LTD.\n* McDonald's\n* You Technologies Group (Singapore)\n\nNever guess the merchant.\n\nCurrency:\n\nUsually SGD.\n\nExtract exactly as written.\n\nAmount:\n\nExtract the numeric amount only.\n\nExample:\n\nSGD 5.00\n\nbecomes\n\n5\n\nNever return amount = 0 if the email clearly states an amount.\n\nCategory MUST be ONLY ONE OF:\n\n* Food\n* Transport\n* Groceries\n* Bills\n* Shopping\n* Healthcare\n* Entertainment\n* Income\n* Savings\n* Investment\n* Other\n\nUse:\n\nIncome\n\nfor:\n\n* Salary\n* Cashback\n* Interest\n* Refund\n* PayNow Received\n* FAST Received\n\nIf category cannot be determined, return:\n\nOther\n\nDescription:\n\nReturn one short sentence.\n\nExamples:\n\n* PayNow to FOMO PAY PTE. LTD.\n* PayNow received from You Technologies Group (Singapore)\n* Debit Card purchase at McDonald's\n* Salary Credit\n* Cashback Credit\n* Interest Credit\n* Refund Received\n* GIRO payment\n* ATM withdrawal\n\nConfidence:\n\nReturn an INTEGER from 0 to 100.\n\nUse these guidelines:\n\n95-100\nAll important information clearly present.\n\n80-94\nMinor information missing.\n\n60-79\nSome uncertainty.\n\nBelow 60\nImportant information missing.\n\nIf confidence is below 60, set:\n\ntransaction_type = \"unknown\"\n\nDo NOT guess.\n\nSpecial Rules:\n\nIf the email contains:\n\n\"You have received\"\n\nthen transaction_type MUST be income.\n\nIf the email contains:\n\n\"Salary\"\n\nthen income_type MUST be salary.\n\nIf the email contains:\n\n\"Interest\"\n\nthen income_type MUST be interest.\n\nIf the email contains:\n\n\"Cashback\"\n\nthen income_type MUST be cashback.\n\nIf the email contains:\n\n\"Refund\"\n\nthen income_type MUST be refund.\n\nIf the email contains:\n\n\"PayNow\"\n\nAND\n\n\"You have received\"\n\nthen:\n\npayment_method = \"PayNow\"\n\ntransaction_type = \"income\"\n\nincome_type = \"transfer\"\n\nIf the email contains:\n\n\"PayNow\"\n\nAND\n\n\"We are pleased to confirm\"\n\nthen:\n\npayment_method = \"PayNow\"\n\ntransaction_type = \"expense\"\n\nIf the email contains:\n\n\"Debit Card\"\n\nthen:\n\npayment_method = \"Debit Card\"\n\ntransaction_type = \"expense\"\n\nIf the email contains:\n\n\"Credit Card\"\n\nthen:\n\npayment_method = \"Credit Card\"\n\ntransaction_type = \"expense\"\n\nIf the email contains:\n\n\"GIRO\"\n\nthen:\n\npayment_method = \"GIRO\"\n\ntransaction_type = \"expense\"\n\nIf the email contains:\n\n\"FAST\"\n\nAND\n\n\"received\"\n\nthen:\n\ntransaction_type = \"income\"\n\nincome_type = \"transfer\"\n\nIf the email contains:\n\n\"FAST\"\n\nAND\n\n\"payment\"\n\nthen:\n\ntransaction_type = \"expense\"\n\nAlways prefer information explicitly written in the email.\n\nNever invent missing values.\n\nReturn ONLY the JSON object.\n\nEmail Subject:\n\n{{$json.Subject}}\n\nEmail From:\n\n{{$json.From}}\n\nEmail Content:\n\n{{$json.email}}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "07ffb2c9-9374-4627-9132-0e72214f7b72",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=💳 New Transaction\n\n💰 Amount:\n{{$json.currency}} {{$json.amount}}\n\n📤 Type:\n{{ $json.transaction_type.charAt(0).toUpperCase() + $json.transaction_type.slice(1) }}\n\n💳 Method:\n{{$json.payment_method}}\n\n🏷 Merchant:\n{{$json.merchant || \"Unknown\"}}\n\n📂 Category:\n{{$json.category || \"Other\"}}\n\n📝 Description:\n{{$json.description}}\n\n🤖 Confidence:\n{{$json.confidence}}%",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1584,
+        -272
+      ],
+      "id": "85d91c9d-ec90-4d12-b6f8-5fa177efcea3",
+      "name": "Send a text message"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ai = $json.output[0].content[0].text;\n\nreturn [\n  {\n    json: JSON.parse(ai)\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "64dcfdcd-b454-45f2-9e9a-8d607da0b192",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cbe9d424-08aa-4d33-b9dc-662bbb4c9542",
+              "leftValue": "={{$json.transaction_type}}",
+              "rightValue": "expense",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "36ceaba7-1881-463f-b749-9148ef37bc5c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Amount ($)": "={{$json.amount}}",
+            "Description": "={{$json.description}}",
+            "Date": "={{ DateTime.now().setZone('Asia/Singapore').toFormat('d-MMM-yyyy') }}",
+            "Time": "={{ DateTime.now().setZone('Asia/Singapore').toFormat('HH:mm:ss') }}",
+            "Category": "={{$json.category || \"Other\"}}",
+            "User": "demo-user"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount ($)",
+              "displayName": "Amount ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "useAppend": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1664,
+        16
+      ],
+      "id": "f8d6d2bb-c55a-4d2b-bbf6-7be3a118c66f",
+      "name": "Append row in sheet"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4859e944-080d-4197-a47c-d5131851c6c6",
+              "leftValue": "={{$json.transaction_type}}",
+              "rightValue": "income",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        352
+      ],
+      "id": "9555c07f-c19e-4ce2-85ea-516409c83083",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1844669863,
+          "mode": "list",
+          "cachedResultName": "Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1844669863"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Date": "={{ DateTime.now().setZone('Asia/Singapore').toFormat('d-MMM-yyyy') }}",
+            "Time": "={{ DateTime.now().setZone('Asia/Singapore').toFormat('HH:mm:ss') }}",
+            "Amount ($)": "={{$json.amount}}",
+            "User": "demo-user",
+            "Source": "={{$json.income_type || $json.payment_method}}",
+            "Description": "={{$json.description}}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Time",
+              "displayName": "Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amount ($)",
+              "displayName": "Amount ($)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User",
+              "displayName": "User",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1952,
+        352
+      ],
+      "id": "531c9a27-73a6-40cc-a721-79df5c641212",
+      "name": "Append row in sheet1"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=💰 Income Received\n\n💰 Amount:\n{{$json.currency}} {{$json.amount}}\n\n🏦 Source:\n{{$json.income_type || $json.payment_method}}\n\n🏷 Sender:\n{{$json.merchant || \"Unknown\"}}\n\n📝 Description:\n{{$json.description}}\n\n🤖 Confidence:\n{{$json.confidence}}%",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        208
+      ],
+      "id": "17c88359-08c1-4b47-89ef-a30c8a4d7c51",
+      "name": "Send a text message1"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=⚠️ Unknown DBS Transaction\n\nAI could not classify this email.\n\nPlease review it manually.\n\nDescription:\n{{$json.description}}\n\nConfidence:\n{{$json.confidence}}%",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        512
+      ],
+      "id": "50d755a8-8ec8-4940-9964-554eee5bf66f",
+      "name": "Send a text message2"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{$json.id}}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "0c326d7d-4974-4b18-80c7-435d2f9dd3af",
+      "name": "Get a message"
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = $json.html || \"\";\n\nconst text = html\n  .replace(/<style[\\s\\S]*?<\\/style>/gi, \"\")\n  .replace(/<script[\\s\\S]*?<\\/script>/gi, \"\")\n  .replace(/<[^>]+>/g, \"\\n\")\n  .replace(/&nbsp;/g, \" \")\n  .replace(/&amp;/g, \"&\")\n  .replace(/&#39;/g, \"'\")\n  .replace(/&quot;/g, '\"')\n  .replace(/\\n\\s*\\n/g, \"\\n\")\n  .trim();\n\nreturn [{\n  json: {\n    email: text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "f1f65db3-42df-4a80-b67d-adbe290a9b31",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        []
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a message": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "gqcJ5Blzc9vEGfkK",
+  "tags": []
+}
