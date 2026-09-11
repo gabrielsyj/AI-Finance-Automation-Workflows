@@ -1,0 +1,299 @@
+{
+  "name": "Finance telebot Chatbot functionality /ask",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "expense-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -160,
+        592
+      ],
+      "id": "51c968d9-35ea-4a96-87ad-c975880315be",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-5.4-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an expert personal finance assistant with access to my complete personal finance database.\n\nThe database contains BOTH:\n\n* Expense transactions\n* Income transactions\n\nToday's date (Singapore) is:\n\n{{ $now.setZone('Asia/Singapore').format('dd-MMM-yyyy') }}\n\nGeneral Rules\n\n* Only use the supplied data.\n* Never invent transactions.\n* Never estimate missing information.\n* Never assume data that is not present.\n* If the answer cannot be determined from the supplied data, clearly say so.\n* Perform all calculations accurately.\n* Answer only what the user asked.\n* Keep answers concise unless the user requests an analysis.\n\nNatural Language Understanding\n\nInterpret questions naturally.\n\nExamples of time:\n\n* today\n* yesterday\n* this week\n* last week\n* this month\n* last month\n* this year\n* last year\n\nExamples of spending questions:\n\n* How much did I spend today?\n* How much did I spend yesterday?\n* How much did I spend on food?\n* How much did I spend at Subway?\n* How much did I spend on bananas?\n* How much did I spend on almonds?\n* What was my biggest purchase?\n* Show my latest expenses.\n* What did I buy today?\n\nExamples of income questions:\n\n* How much income did I receive today?\n* How much salary did I receive this month?\n* What is my biggest income?\n* Show all income this month.\n* How much have I earned?\n* What are my income sources?\n\nExamples of combined finance questions:\n\n* Compare my income and expenses.\n* Did I spend more than I earned this month?\n* What's my net cash flow this month?\n* Analyse my finances.\n* What are my spending habits?\n* Which category do I spend the most on?\n* Which income source contributes the most?\n\nSearch Behaviour\n\nWhen the user mentions:\n\n* a merchant\n* a product\n* a food item\n* a shop\n* a brand\n* a keyword\n\nsearch naturally using the transaction descriptions.\n\nExamples:\n\nUser: bananas\n→ search descriptions for \"bananas\"\n\nUser: almonds\n→ search descriptions for \"almonds\"\n\nUser: protein powder\n→ search descriptions for relevant matching descriptions.\n\nDo not require exact wording.\n\nIf multiple transactions match, use all matching transactions.\n\nCalculations\n\nWhen calculations are requested:\n\n* Sum all matching transactions.\n* Count matching transactions.\n* Find averages if requested.\n* Find highest or lowest if requested.\n* Compare income and expenses accurately when requested.\n\nFinancial Analysis\n\nWhen the user requests analysis, identify:\n\n* spending trends\n* income trends\n* largest expense categories\n* largest income sources\n* unusual transactions\n* useful financial observations\n\nSeparate facts from recommendations.\n\nQuestion\n\n{{ $json.question }}\n\nExpense Data\n\n{{ JSON.stringify($json.expenses) }}\n\nIncome Data\n\n{{ JSON.stringify($json.income) }}\nSummary Data\n\n{{ JSON.stringify($json.summary) }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        720
+      ],
+      "id": "9f148d8b-03cc-47ce-b4e8-a5b20b9a448f",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{$json.answer}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1712,
+        736
+      ],
+      "id": "b683b565-5025-41db-8cac-575c970bba0c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    answer: $json.output[0].content[0].text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        736
+      ],
+      "id": "4c46e1d7-eb4b-46e3-8b60-0159ea406e0d",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        592
+      ],
+      "id": "317fc245-61fc-4207-837c-6d68d19a74b5",
+      "name": "Get Expenses"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1844669863,
+          "mode": "list",
+          "cachedResultName": "Income",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=1844669863"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        752
+      ],
+      "id": "f048ce04-177c-4e16-be1f-4ddb8b54c9cc",
+      "name": "Get Income"
+    },
+    {
+      "parameters": {
+        "jsCode": "const question = $('Webhook').first().json.body.question;\n\nconst expenses = [];\nconst income = [];\n\nconst summary = {\n  balance: {},\n  totals: {},\n  monthlyTotals: {},\n  yearlyTotals: {},\n  categories: {},\n  incomeSources: {},\n  lastUpdated: \"\"\n};\n\nlet section = \"\";\n\nfor (const item of $input.all()) {\n\n  const row = item.json;\n\n  // -------------------------\n  // EXPENSES\n  // -------------------------\n\n  if (\"Category\" in row) {\n\n    expenses.push({\n      date: row[\"Date\"],\n      amount: Number(row[\"Amount ($)\"]),\n      category: row[\"Category\"],\n      description: row[\"Description\"]\n    });\n\n    continue;\n  }\n\n  // -------------------------\n  // INCOME\n  // -------------------------\n\n  if (\"Source\" in row) {\n\n    income.push({\n      date: row[\"Date\"],\n      amount: Number(row[\"Amount ($)\"]),\n      source: row[\"Source\"],\n      description: row[\"Description\"]\n    });\n\n    continue;\n  }\n\n  // -------------------------\n  // SUMMARY\n  // -------------------------\n\n  if (\"Metric\" in row) {\n\n    const metric = String(row[\"Metric\"]).trim();\n    const value = String(row[\"Value\"]).trim();\n\n    // Detect sections\n    if (metric.includes(\"💵 BALANCE\")) {\n      section = \"balance\";\n      continue;\n    }\n\n    if (metric.includes(\"📅 DAILY\")) {\n      section = \"daily\";\n      continue;\n    }\n\n    if (metric.includes(\"📆 MONTHLY\")) {\n      section = \"monthly\";\n      continue;\n    }\n\n    if (metric.includes(\"📅 YEARLY\")) {\n      section = \"yearly\";\n      continue;\n    }\n\n    if (metric.includes(\"📁 EXPENSES\")) {\n      section = \"categories\";\n      continue;\n    }\n\n    if (metric.includes(\"💰 INCOME\")) {\n      section = \"income\";\n      continue;\n    }\n\n    // Balance section\n    if (section === \"balance\") {\n\n      if (metric === \"Initial Balance\")\n        summary.balance.initial = value;\n\n      else if (metric === \"Current Balance\")\n        summary.balance.current = value;\n\n      else if (metric === \"Total Income\")\n        summary.totals.totalIncome = value;\n\n      else if (metric === \"Total Expenses\")\n        summary.totals.totalExpenses = value;\n\n      else if (metric === \"Total Expense Entries\")\n        summary.totals.expenseEntries = value;\n\n      else if (metric === \"Total Income Entries\")\n        summary.totals.incomeEntries = value;\n\n    }\n\n    // Monthly totals\n    else if (section === \"monthly\") {\n\n      summary.monthlyTotals[metric] = value;\n\n    }\n\n    // Yearly totals\n    else if (section === \"yearly\") {\n\n      summary.yearlyTotals[metric] = value;\n\n    }\n\n    // Categories\n    else if (section === \"categories\") {\n\n      summary.categories[metric] = value;\n\n    }\n\n    // Income sources\n    else if (section === \"income\") {\n\n      summary.incomeSources[metric] = value;\n\n    }\n\n    // Last Updated\n    if (metric === \"Last Updated\") {\n\n      summary.lastUpdated = value;\n\n    }\n\n  }\n\n}\n\nreturn [{\n  json: {\n    question,\n    expenses,\n    income,\n    summary\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        672
+      ],
+      "id": "cb7334d8-00c4-4af2-9534-c55e36ffed27",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        368,
+        672
+      ],
+      "id": "10e32acc-0165-44f2-9c70-a4f582e3542d",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Daily Expenses",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 58559128,
+          "mode": "list",
+          "cachedResultName": "Summary",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=58559128"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96,
+        1040
+      ],
+      "id": "17049eb4-e499-4156-91af-e6421244b85d",
+      "name": "Get Summary"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Expenses",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Income",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Expenses": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Income": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Singapore",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "7ynOq8UkAA0wR1MM",
+  "tags": []
+}
