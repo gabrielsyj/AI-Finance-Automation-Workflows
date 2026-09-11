@@ -39,3 +39,19 @@ Process transaction
 Google Sheets
   ↓
 Telegram
+```
+
+## Repository Structure
+
+```text
+workflows/
+├── Finance AI Parser
+├── Finance Assistant
+└── Daily Finance Summary
+```
+
+## Note
+
+The workflow files have been sanitised before being uploaded here. Personal information, credentials and private configuration have been removed or replaced with placeholders.
+
+If you want to run the workflows yourself, you will need to connect your own credentials and configure the required services in n8n.
